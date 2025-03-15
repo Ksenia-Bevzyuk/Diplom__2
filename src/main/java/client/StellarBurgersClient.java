@@ -105,8 +105,8 @@ public class StellarBurgersClient {
     public String[] choiceIngredient(ValidatableResponse response) {
         Ingredients hashIngredient = response.extract().as(Ingredients.class);
 
-        return new String[]{hashIngredient.getData().get(0).get_id(),
-                hashIngredient.getData().get(1).get_id()};
+        return new String[]{hashIngredient.getData().get(0).getId(),
+                hashIngredient.getData().get(1).getId()};
     }
 
 
