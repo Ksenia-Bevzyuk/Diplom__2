@@ -17,4 +17,12 @@ public class User {
         Faker faker = new Faker();
         return faker.internet().emailAddress();
     }
+    public static String generationPass() {
+        Faker faker = new Faker();
+        return faker.internet().password(6, 8);
+    }
+    public static String generationName() {
+        Faker faker = new Faker();
+        return faker.name().firstName();
+    }
 }
