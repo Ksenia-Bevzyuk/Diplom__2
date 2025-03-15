@@ -3,12 +3,12 @@ import io.qameta.allure.Description;
 import io.qameta.allure.junit4.DisplayName;
 import io.restassured.response.ValidatableResponse;
 import model.*;
-import model.Number;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import static org.apache.http.HttpStatus.*;
-import static org.junit.Assert.*;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.junit.Assume.assumeTrue;
 
 public class CreateOrderTest {
@@ -19,12 +19,19 @@ public class CreateOrderTest {
     private ValidatableResponse responseCreateUser;
     private ValidatableResponse responseLoginUser;
     private String genEmail;
+    private String genPass;
+    private String genName;
 
     @Before
+    @DisplayName("Перед каждым тестом")
+    @Description("Генерация данных для создания пользователя," +
+            "создание пользователя и вход перед каждым тестом")
     public void before() {
         genEmail = User.generationEmail();
+        genPass = User.generationPass();
+        genName = User.generationName();
 
-        user = new User(genEmail, "password", "Павел");
+        user = new User(genEmail, genPass, genName);
         client = new StellarBurgersClient("");
         responseCreateUser = client.createUser(user);
         assumeTrue(responseCreateUser.extract().statusCode() == SC_OK);
@@ -43,31 +50,26 @@ public class CreateOrderTest {
         String[] ingredients = clientLogin.choiceIngredient(response);
 
         Order order = new Order(ingredients);
-        ValidatableResponse responseCreateOrder = clientLogin.createOrder(order);
-        int statusCode = responseCreateOrder.extract().statusCode();
-        boolean success = responseCreateOrder.extract().jsonPath().getBoolean("success");
-        String name = responseCreateOrder.extract().jsonPath().getString("name");
-        int number = responseCreateOrder.extract().as(Number.class).getNumber();
-        assertEquals("Ожидается код ответа 200", SC_OK, statusCode);
-        assertEquals("Ожидается true", true, success);
-        assertNotNull(name);
-        assertNotNull(number);
+
+        clientLogin.createOrder(order)
+                .assertThat()
+                .statusCode(SC_OK)
+                .body("success", equalTo(true))
+                .body("name", notNullValue())
+                .body("order.number", notNullValue());
     }
 
     @Test
     @DisplayName("POST /api/orders создание заказа с авторизованным пользователем")
     @Description("Создание заказа с авторизованным пользователем без ингредиентов")
     public void createOrderLoginUserAndWithoutIngredients() {
-
         Order order = new Order();
-        ValidatableResponse responseCreateOrder = clientLogin.createOrder(order);
-        int statusCode = responseCreateOrder.extract().statusCode();
-        boolean success = responseCreateOrder.extract().jsonPath().getBoolean("success");
-        String message = responseCreateOrder.extract().jsonPath().getString("message");
-        assertEquals("Ожидается код ответа 400", SC_BAD_REQUEST, statusCode);
-        assertEquals("Ожидается false", false, success);
-        assertEquals("Ожидается другое сообщение",
-                "Ingredient ids must be provided", message);
+
+        clientLogin.createOrder(order)
+                .assertThat()
+                .statusCode(SC_BAD_REQUEST)
+                .body("success", equalTo(false))
+                .body("message", equalTo("Ingredient ids must be provided"));
     }
 
     @Test
@@ -87,31 +89,24 @@ public class CreateOrderTest {
         String[] ingredients = client.choiceIngredient(response);
 
         Order order = new Order(ingredients);
-        ValidatableResponse responseCreateOrder = client.createOrder(order);
-        int statusCode = responseCreateOrder.extract().statusCode();
-        boolean success = responseCreateOrder.extract().jsonPath().getBoolean("success");
-        String name = responseCreateOrder.extract().jsonPath().getString("name");
-        int number = responseCreateOrder.extract().as(Number.class).getNumber();
-        assertEquals("Ожидается код ответа 200", SC_OK, statusCode);
-        assertEquals("Ожидается true", true, success);
-        assertNotNull(name);
-        assertNotNull(number);
+        clientLogin.createOrder(order)
+                .assertThat()
+                .statusCode(SC_OK)
+                .body("success", equalTo(true))
+                .body("name", notNullValue())
+                .body("order.number", notNullValue());
     }
 
     @Test
     @DisplayName("POST /api/orders создание заказа с неавторизованным пользователем")
     @Description("Создание заказа с неавторизованным пользователем без ингредиентов")
     public void createOrderUnauthUserAndWithoutIngredients() {
-
         Order order = new Order();
-        ValidatableResponse responseCreateOrder = client.createOrder(order);
-        int statusCode = responseCreateOrder.extract().statusCode();
-        boolean success = responseCreateOrder.extract().jsonPath().getBoolean("success");
-        String message = responseCreateOrder.extract().jsonPath().getString("message");
-        assertEquals("Ожидается код ответа 400", SC_BAD_REQUEST, statusCode);
-        assertEquals("Ожидается false", false, success);
-        assertEquals("Ожидается другое сообщение",
-                "Ingredient ids must be provided", message);
+        clientLogin.createOrder(order)
+                .assertThat()
+                .statusCode(SC_BAD_REQUEST)
+                .body("success", equalTo(false))
+                .body("message", equalTo("Ingredient ids must be provided"));
     }
 
     @After
