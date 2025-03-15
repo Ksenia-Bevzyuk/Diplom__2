@@ -1,5 +1,6 @@
 package model;
 
+import com.google.gson.annotations.SerializedName;
 import io.qameta.allure.internal.shadowed.jackson.annotation.JsonIgnoreProperties;
 import lombok.AllArgsConstructor;
 import lombok.Value;
@@ -8,5 +9,6 @@ import lombok.Value;
 @Value
 @AllArgsConstructor
 public class DataOfOrder {
-    private String _id;
+    @SerializedName(value = "_id")
+    private String id;
 }
