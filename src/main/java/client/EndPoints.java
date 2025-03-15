@@ -7,5 +7,5 @@ public class EndPoints {
     public static final String CHANGE_DATA_USER = "/api/auth/user";
     public static final String GET_HASH_INGREDIENT = "/api/ingredients";
     public static final String CREATE_ORDER = "/api/orders";
-    public static final String GET_ORDERS = "/api/orders/all";
+    public static final String GET_ORDERS = "/api/orders";
 }
