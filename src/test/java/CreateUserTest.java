@@ -4,23 +4,34 @@ import io.qameta.allure.junit4.DisplayName;
 import io.restassured.response.ValidatableResponse;
 import model.User;
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 import static org.apache.http.HttpStatus.*;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.junit.Assert.assertEquals;
 
 public class CreateUserTest {
     private User user;
     private StellarBurgersClient client;
     private ValidatableResponse response;
+    private String genEmail;
+    private String genPass;
+    private String genName;
+
+    @Before
+    @DisplayName("Перед каждым тестом")
+    @Description("Генерация данных для создания пользователя")
+    public void before() {
+        genEmail = User.generationEmail();
+        genPass = User.generationPass();
+        genName = User.generationName();
+    }
 
     @Test
     @DisplayName("POST /api/auth/register корректно заполнены все поля")
     @Description("Успешное создание пользователя, заполнены все поля")
     public void createUserAllFieldCorrectTest() {
-        String genEmail = User.generationEmail();
-
-        user = new User(genEmail, "password", "Павел");
+        user = new User(genEmail, genPass, genName);
         client = new StellarBurgersClient("");
         response = client.createUser(user);
 
@@ -31,73 +42,60 @@ public class CreateUserTest {
     @DisplayName("POST /api/auth/register попытка создать двух одинаковых пользователей")
     @Description("Код 403 при создании двух одинаковых пользователей")
     public void createTwoIdenticalStatusCode403Test() {
-        String genEmail = User.generationEmail();
-        user = new User(genEmail, "password", "Павел");
+        user = new User(genEmail, genPass, genName);
         client = new StellarBurgersClient("");
+        client.createUser(user);
+
         response = client.createUser(user);
-
-        ValidatableResponse response1 = client.createUser(user);
-
-        int statusCode = response1.extract().statusCode();
-        boolean success = response1.extract().jsonPath().getBoolean("success");
-        String message = response1.extract().jsonPath().getString("message");
-        assertEquals("Ожидается код ответа 403", SC_FORBIDDEN, statusCode);
-        assertEquals("Ожидается false", false, success);
-        assertEquals("Ожидается другое сообщение",
-                "User already exists", message);
+        response.assertThat()
+                .statusCode(SC_FORBIDDEN)
+                .body("success", equalTo(false))
+                .body("message", equalTo("User already exists"));
     }
 
     @Test
     @DisplayName("POST /api/auth/register попытка создать пользователя с email = null")
     @Description("Код 403 при заполненных полях password и name, email - null")
     public void createUserWithFieldPassAndNameOnlyTest() {
-        user = new User(null, "password", "Павел");
+        user = new User(null, genPass, genName);
         client = new StellarBurgersClient("");
 
         response = client.createUser(user);
-        int statusCode = response.extract().statusCode();
-        boolean success = response.extract().jsonPath().getBoolean("success");
-        String message = response.extract().jsonPath().getString("message");
-        assertEquals("Ожидается код ответа 403", SC_FORBIDDEN, statusCode);
-        assertEquals("Ожидается false", false, success);
-        assertEquals("Ожидается другое сообщение",
-                "Email, password and name are required fields", message);
+        response.assertThat()
+                .statusCode(SC_FORBIDDEN)
+                .body("success", equalTo(false))
+                .body("message",
+                        equalTo("Email, password and name are required fields"));
     }
 
     @Test
     @DisplayName("POST /api/auth/register попытка создать пользователя с password = null")
     @Description("Код 403 при заполненных полях email и name, password - null")
     public void createUserWithFieldEmailAndNameOnlyTest() {
-        String genEmail = User.generationEmail();
-        user = new User(genEmail, null, "Павел");
+        user = new User(genEmail, null, genName);
         client = new StellarBurgersClient("");
 
         response = client.createUser(user);
-        int statusCode = response.extract().statusCode();
-        boolean success = response.extract().jsonPath().getBoolean("success");
-        String message = response.extract().jsonPath().getString("message");
-        assertEquals("Ожидается код ответа 403", SC_FORBIDDEN, statusCode);
-        assertEquals("Ожидается false", false, success);
-        assertEquals("Ожидается другое сообщение",
-                "Email, password and name are required fields", message);
+        response.assertThat()
+                .statusCode(SC_FORBIDDEN)
+                .body("success", equalTo(false))
+                .body("message",
+                        equalTo("Email, password and name are required fields"));
     }
 
     @Test
     @DisplayName("POST /api/auth/register попытка создать пользователя с name = null")
     @Description("Код 403 при заполненных полях email и password, name - null")
     public void createUserWithFieldEmailAndPassOnlyTest() {
-        String genEmail = User.generationEmail();
-        user = new User(genEmail, null, "Павел");
+        user = new User(genEmail, null, genName);
         client = new StellarBurgersClient("");
 
         response = client.createUser(user);
-        int statusCode = response.extract().statusCode();
-        boolean success = response.extract().jsonPath().getBoolean("success");
-        String message = response.extract().jsonPath().getString("message");
-        assertEquals("Ожидается код ответа 403", SC_FORBIDDEN, statusCode);
-        assertEquals("Ожидается false", false, success);
-        assertEquals("Ожидается другое сообщение",
-                "Email, password and name are required fields", message);
+        response.assertThat()
+                .statusCode(SC_FORBIDDEN)
+                .body("success", equalTo(false))
+                .body("message",
+                        equalTo("Email, password and name are required fields"));
     }
 
     @After
