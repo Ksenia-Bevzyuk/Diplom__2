@@ -3,14 +3,13 @@ import io.qameta.allure.Description;
 import io.qameta.allure.junit4.DisplayName;
 import io.restassured.response.ValidatableResponse;
 import model.Credentials;
-import model.Number;
 import model.User;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import static org.apache.http.HttpStatus.*;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.junit.Assume.assumeTrue;
 
 public class GetOrdersTest {
@@ -21,12 +20,19 @@ public class GetOrdersTest {
     private ValidatableResponse responseCreateUser;
     private ValidatableResponse responseLoginUser;
     private String genEmail;
+    private String genPass;
+    private String genName;
 
     @Before
+    @DisplayName("Перед каждым тестом")
+    @Description("Генерация данных для создания пользователя," +
+            "создание пользователя и вход перед каждым тестом")
     public void before() {
         genEmail = User.generationEmail();
+        genPass = User.generationPass();
+        genName = User.generationName();
 
-        user = new User(genEmail, "password", "Павел");
+        user = new User(genEmail, genPass, genName);
         client = new StellarBurgersClient("");
         responseCreateUser = client.createUser(user);
         assumeTrue(responseCreateUser.extract().statusCode() == SC_OK);
@@ -41,34 +47,24 @@ public class GetOrdersTest {
     @DisplayName("POST /api/orders/all получение заказов")
     @Description("Получение заказов авторизованного пользователя")
     public void getOrdersLoginUser() {
-        ValidatableResponse responseGetOrders = clientLogin.getOrders();
-        int statusCode = responseGetOrders.extract().statusCode();
-        boolean success = responseGetOrders.extract().jsonPath().getBoolean("success");
-        int total = responseGetOrders.extract().jsonPath().getInt("total");
-        int totalToday = responseGetOrders.extract().jsonPath().getInt("totalToday");
-        int number = responseGetOrders.extract().as(Number.class).getNumber();
-        assertEquals("Ожидается код ответа 200", SC_OK, statusCode);
-        assertEquals("Ожидается true", true, success);
-        assertNotNull(total);
-        assertNotNull(totalToday);
-        assertNotNull(number);
+        clientLogin.getOrders()
+                .assertThat()
+                .statusCode(SC_OK)
+                .body("success", equalTo(true))
+                .body("total", notNullValue())
+                .body("totalToday", notNullValue())
+                .body("orders.number", notNullValue());
     }
 
     @Test
     @DisplayName("POST /api/orders/all получение заказов")
     @Description("Получение заказов неавторизованного пользователя")
     public void getOrdersUnauthUser() {
-        ValidatableResponse responseGetOrders = client.getOrders();
-        int statusCode = responseGetOrders.extract().statusCode();
-        boolean success = responseGetOrders.extract().jsonPath().getBoolean("success");
-        int total = responseGetOrders.extract().jsonPath().getInt("total");
-        int totalToday = responseGetOrders.extract().jsonPath().getInt("totalToday");
-        int number = responseGetOrders.extract().as(Number.class).getNumber();
-        assertEquals("Ожидается код ответа 200", SC_OK, statusCode);
-        assertEquals("Ожидается true", true, success);
-        assertNotNull(total);
-        assertNotNull(totalToday);
-        assertNotNull(number);
+        client.getOrders()
+                .assertThat()
+                .statusCode(SC_UNAUTHORIZED)
+                .body("success", equalTo(false))
+                .body("message", equalTo("You should be authorised"));
     }
 
     @After
