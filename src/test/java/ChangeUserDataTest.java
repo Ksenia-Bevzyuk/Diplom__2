@@ -3,14 +3,12 @@ import io.qameta.allure.Description;
 import io.qameta.allure.junit4.DisplayName;
 import io.restassured.response.ValidatableResponse;
 import model.Credentials;
-import model.UpdateUser;
 import model.User;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import static org.apache.http.HttpStatus.*;
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assume.assumeTrue;
 
 public class ChangeUserDataTest {
@@ -21,12 +19,19 @@ public class ChangeUserDataTest {
     private ValidatableResponse responseCreateUser;
     private ValidatableResponse responseLoginUser;
     private String genEmail;
+    private String genPass;
+    private String genName;
 
     @Before
+    @DisplayName("Перед каждым тестом")
+    @Description("Генерация данных для создания пользователя," +
+            "создание пользователя и вход перед каждым тестом")
     public void before() {
         genEmail = User.generationEmail();
+        genPass = User.generationPass();
+        genName = User.generationName();
 
-        user = new User(genEmail, "password", "Павел");
+        user = new User(genEmail, genPass, genName);
         client = new StellarBurgersClient("");
         responseCreateUser = client.createUser(user);
         assumeTrue(responseCreateUser.extract().statusCode() == SC_OK);
@@ -43,11 +48,12 @@ public class ChangeUserDataTest {
     @DisplayName("PATCH /api/auth/user изменение name")
     @Description("Изменение name авторизованного пользователя")
     public void changeNameLoginUserTest() {
-        String changeUserName = clientLogin.genJson("name", "Павел");
-        ValidatableResponse response = clientLogin.changeUserData(changeUserName);
-        response.assertThat().statusCode(SC_OK).body("success", equalTo(true));
-        String name = response.extract().body().as(UpdateUser.class).getUser().getName();
-        assertEquals("Павелq", name);
+        String changeUserName = clientLogin.genJson("name", genName);
+        clientLogin.changeUserData(changeUserName)
+                .assertThat()
+                .statusCode(SC_OK)
+                .body("success", equalTo(true))
+                .body("user.name", equalTo(genName + "q"));
     }
 
     @Test
@@ -55,25 +61,23 @@ public class ChangeUserDataTest {
     @Description("Изменение email авторизованного пользователя")
     public void changeEmailLoginUserTest() {
         String changeUserEmail = clientLogin.genJson("email", genEmail);
-        ValidatableResponse response = clientLogin.changeUserData(changeUserEmail);
-        response.assertThat().statusCode(SC_OK).body("success", equalTo(true));
-        String email = response.extract().body().as(UpdateUser.class).getUser().getEmail();
-        assertEquals(genEmail + "q", email);
+        clientLogin.changeUserData(changeUserEmail)
+                .assertThat()
+                .statusCode(SC_OK)
+                .body("success", equalTo(true))
+                .body("user.email", equalTo(genEmail + "q"));
     }
 
     @Test
     @DisplayName("PATCH /api/auth/user изменение name")
     @Description("Изменение name неавторизованного пользователя")
     public void changeNameUnauthUserTest() {
-        String changeUserName = client.genJson("name", "Павел");
-        ValidatableResponse response = client.changeUserData(changeUserName);
-        int statusCode = response.extract().statusCode();
-        boolean success = response.extract().jsonPath().getBoolean("success");
-        String message = response.extract().jsonPath().getString("message");
-        assertEquals("Ожидается код ответа 401", SC_UNAUTHORIZED, statusCode);
-        assertEquals("Ожидается false", false, success);
-        assertEquals("Ожидается другое сообщение",
-                "You should be authorised", message);
+        String changeUserName = client.genJson("name", genName);
+        client.changeUserData(changeUserName)
+                .assertThat()
+                .statusCode(SC_UNAUTHORIZED)
+                .body("success", equalTo(false))
+                .body("message", equalTo("You should be authorised"));
     }
 
     @Test
@@ -81,14 +85,11 @@ public class ChangeUserDataTest {
     @Description("Изменение email неавторизованного пользователя")
     public void changeEmailUnauthUserTest() {
         String changeUserEmail = client.genJson("email", genEmail);
-        ValidatableResponse response = client.changeUserData(changeUserEmail);
-        int statusCode = response.extract().statusCode();
-        boolean success = response.extract().jsonPath().getBoolean("success");
-        String message = response.extract().jsonPath().getString("message");
-        assertEquals("Ожидается код ответа 401", SC_UNAUTHORIZED, statusCode);
-        assertEquals("Ожидается false", false, success);
-        assertEquals("Ожидается другое сообщение",
-                "You should be authorised", message);
+        client.changeUserData(changeUserEmail)
+                .assertThat()
+                .statusCode(SC_UNAUTHORIZED)
+                .body("success", equalTo(false))
+                .body("message", equalTo("You should be authorised"));
     }
 
     @After
