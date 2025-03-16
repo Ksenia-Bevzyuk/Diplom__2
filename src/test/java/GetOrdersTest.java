@@ -3,6 +3,8 @@ import io.qameta.allure.Description;
 import io.qameta.allure.junit4.DisplayName;
 import io.restassured.response.ValidatableResponse;
 import model.Credentials;
+import model.Number;
+import model.Order;
 import model.User;
 import org.junit.After;
 import org.junit.Before;
@@ -10,6 +12,8 @@ import org.junit.Test;
 import static org.apache.http.HttpStatus.*;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assume.assumeTrue;
 
 public class GetOrdersTest {
@@ -31,7 +35,6 @@ public class GetOrdersTest {
         genEmail = User.generationEmail();
         genPass = User.generationPass();
         genName = User.generationName();
-
         user = new User(genEmail, genPass, genName);
         client = new StellarBurgersClient("");
         responseCreateUser = client.createUser(user);
@@ -47,6 +50,8 @@ public class GetOrdersTest {
     @DisplayName("POST /api/orders/all получение заказов")
     @Description("Получение заказов авторизованного пользователя")
     public void getOrdersLoginUser() {
+        Order order = new Order();
+        clientLogin.createOrder(order);
         clientLogin.getOrders()
                 .assertThat()
                 .statusCode(SC_OK)
@@ -60,6 +65,8 @@ public class GetOrdersTest {
     @DisplayName("POST /api/orders/all получение заказов")
     @Description("Получение заказов неавторизованного пользователя")
     public void getOrdersUnauthUser() {
+        Order order = new Order();
+        client.createOrder(order);
         client.getOrders()
                 .assertThat()
                 .statusCode(SC_UNAUTHORIZED)
